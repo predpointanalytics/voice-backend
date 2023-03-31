@@ -53,14 +53,16 @@ async def get_post(request: Request):
     # return random.randint(1,9)
     return ref_id
 
-@app.patch('/verify')
-async def get_post(id, request: Request):
+@app.patch('/verify/{id}')
+async def get_post( id: int, request: Request):
+    # id=2
+    print(id)
     post_data = await request.body()
     audio_file = open("verify.m4a", "wb")
     audio_file.write(post_data)
     subprocess.call(['ffmpeg', '-i', 'verify.m4a', 'verify.wav', '-y'])
 
-    id= int(id)
+    # id= int(id)
     # print(post_data)
     signal, fs =torchaudio.load('verify.wav', channels_first=False)
     signal = a_norm(signal, fs)
