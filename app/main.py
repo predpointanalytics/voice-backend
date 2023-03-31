@@ -41,8 +41,17 @@ async def get_post(request: Request):
     emb =  classifier.encode_batch(signal)
     comp= x[x.rec_id==1]['embedding'].item()
     score = cdist(emb[0], comp, metric='cosine')
-    print(emb[0])
-    return random.randint(1,9)
+    # print(emb[0])
+    ref_id = len(x)+1
+    x.loc[ref_id] = [ref_id, emb[0]]
+    try:
+     with open('appv2_pkl', 'wb') as files:
+        pickle.dump(x,files)
+        print('df saved')
+    except Exception as err:
+        print(err) 
+    # return random.randint(1,9)
+    return ref_id
 
 @app.patch('/verify')
 async def get_post(id, request: Request):
@@ -59,6 +68,7 @@ async def get_post(id, request: Request):
     comp= x[x.rec_id==id]['embedding'].item()
     score = cdist(emb[0], comp, metric='cosine')
     print(score)
+    # print(x)
     if score < 0.6:
         return f'Authenticated'
     else:
