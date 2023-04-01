@@ -12,22 +12,30 @@ from speechbrain.dataio.preprocess import AudioNormalizer
 import torchaudio
 a_norm= AudioNormalizer()
 import subprocess
+import io
+import torch
 
 app = FastAPI()
 
 classifier = EncoderClassifier.from_hparams(source='speechbrain/spkrec-ecapa-voxceleb', savedir='model')
 
-try:
-     with open('appv2_pkl', 'rb') as files:
-        x= pickle.load(files)
-        print('df loaded')
-except Exception as err:
-    print(err)
-
 class Post(BaseModel):
     title: str
     content: str
     published: bool = True
+
+while True:
+    try:
+        conn = psycopg2.connect(host='localhost', database='fastapi',
+                                user='postgres', password='password',
+                                cursor_factory=RealDictCursor)
+        print('DB connection successful!')
+        cursor = conn.cursor()
+        break
+    except Exception as error:
+        print('Connection Failed')
+        print('Error: ', error)
+        time.sleep(2)
 
 
 @app.patch('/upload')
@@ -40,19 +48,27 @@ async def get_post(request: Request):
     signal, fs =torchaudio.load('temp22.wav', channels_first=False)
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
-    comp= x[x.rec_id==1]['embedding'].item()
-    score = cdist(emb[0], comp, metric='cosine')
-    # print(emb[0])
-    ref_id = len(x)+1
-    x.loc[ref_id] = [ref_id, emb[0]]
+
+    buffer = io.BytesIO()
+    torch.save(emb[0], buffer)
+    data = buffer.getvalue()
+
     try:
-     with open('appv2_pkl', 'wb') as files:
-        pickle.dump(x,files)
-        print('df saved')
+        cursor.execute("""INSERT INTO embeddings (embs) VALUES (%s)
+        RETURNING *""", (psycopg2.Binary(data),))
+        new_post = cursor.fetchone()
+        buffer = io.BytesIO(new_post['embs'])
+        arr = torch.load(buffer) 
+        # print(arr)
+        # print(new_post['id'])
+        conn.commit()
     except Exception as err:
-        print(err) 
-    # return random.randint(1,9)
-    return ref_id
+        print('error: ', err)
+    
+    if not new_post:
+        return 'Upload failed'
+
+    return new_post['id']
 
 @app.patch('/verify/{id}')
 async def get_post( id: int, request: Request):
@@ -66,8 +82,17 @@ async def get_post( id: int, request: Request):
     signal, fs =torchaudio.load('verify.wav', channels_first=False)
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
-    comp= x[x.rec_id==id]['embedding'].item()
-    score = cdist(emb[0], comp, metric='cosine')
+    try:
+        cursor.execute("""SELECT embs from embeddings WHERE id={0}""".format(id))
+        bin_data = cursor.fetchone()['embs']
+        buffer = io.BytesIO(bin_data)
+        emb_db = torch.load(buffer)
+        # print(emb_db)
+    except Exception as err:
+        print('error: ', err)
+    if not bin_data:
+        return 'Enter valid id'
+    score = cdist(emb[0], emb_db, metric='cosine')
     print(score)
     # print(x)
     if score < 0.6:
