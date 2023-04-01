@@ -29,6 +29,7 @@ class Post(BaseModel):
     content: str
     published: bool = True
 
+
 @app.patch('/upload')
 async def get_post(request: Request):
     post_data = await request.body()
@@ -62,8 +63,6 @@ async def get_post( id: int, request: Request):
     audio_file.write(post_data)
     subprocess.call(['ffmpeg', '-i', 'verify.m4a', 'verify.wav', '-y'])
 
-    # id= int(id)
-    # print(post_data)
     signal, fs =torchaudio.load('verify.wav', channels_first=False)
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
