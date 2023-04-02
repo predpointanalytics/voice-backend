@@ -104,4 +104,4 @@ async def get_post( id: int, request: Request):
 def root():
     # cursor.execute("""SELECT * from posts""")
     # posts = cursor.fetchall()
-    return {'data': 'Works fine yo'}
+    return {'data': 'Works fine yo!!!!'}
