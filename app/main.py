@@ -35,18 +35,19 @@ print('pre db load 0.1')
 #         print('Error: ', error)
 #         time.sleep(2)
 
-async def init():
-    conn = await psycopg2.connect(host='localhost', database='fastapi',
+def init():
+    conn = psycopg2.connect(host='localhost', database='fastapi',
                                 user='postgres', password='password',
                                 cursor_factory=RealDictCursor)
     print('DB connection successful!')
-    cursor = await conn.cursor()
-    return cursor
+    cursor = conn.cursor()
+    return (conn, cursor)
 
-cursor = init()
+
 
 @app.patch('/upload')
 async def get_post(request: Request):
+    conn, cursor = init()
     post_data = await request.body()
     audio_file = open("temp22.m4a", "wb")
     audio_file.write(post_data)
@@ -69,6 +70,7 @@ async def get_post(request: Request):
         # print(arr)
         # print(new_post['id'])
         conn.commit()
+        conn.close()
     except Exception as err:
         print('error: ', err)
     
