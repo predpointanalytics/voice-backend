@@ -19,13 +19,11 @@ app = FastAPI()
 
 classifier = EncoderClassifier.from_hparams(source='speechbrain/spkrec-ecapa-voxceleb', savedir='model')
 
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
+print('pre db load 0.1')
 
 while True:
     try:
+        print('pre db load 0.2')
         conn = psycopg2.connect(host='localhost', database='fastapi',
                                 user='postgres', password='password',
                                 cursor_factory=RealDictCursor)
