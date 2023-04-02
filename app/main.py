@@ -21,20 +21,29 @@ classifier = EncoderClassifier.from_hparams(source='speechbrain/spkrec-ecapa-vox
 
 print('pre db load 0.1')
 
-while True:
-    try:
-        print('pre db load 0.2')
-        conn = psycopg2.connect(host='localhost', database='fastapi',
+# while True:
+#     try:
+#         print('pre db load 0.2')
+#         conn = psycopg2.connect(host='localhost', database='fastapi',
+#                                 user='postgres', password='password',
+#                                 cursor_factory=RealDictCursor)
+#         print('DB connection successful!')
+#         cursor = conn.cursor()
+#         break
+#     except Exception as error:
+#         print('Connection Failed')
+#         print('Error: ', error)
+#         time.sleep(2)
+
+async def init():
+    conn = await psycopg2.connect(host='localhost', database='fastapi',
                                 user='postgres', password='password',
                                 cursor_factory=RealDictCursor)
-        print('DB connection successful!')
-        cursor = conn.cursor()
-        break
-    except Exception as error:
-        print('Connection Failed')
-        print('Error: ', error)
-        time.sleep(2)
+    print('DB connection successful!')
+    cursor = await conn.cursor()
+    return cursor
 
+cursor = init()
 
 @app.patch('/upload')
 async def get_post(request: Request):
