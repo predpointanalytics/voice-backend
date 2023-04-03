@@ -64,18 +64,19 @@ async def get_post(request: Request):
     try:
         cursor.execute("""INSERT INTO embeddings (embs) VALUES (%s)
         RETURNING *""", (psycopg2.Binary(data),))
-        new_post = await cursor.fetchone()
+        new_post =  cursor.fetchone()
         buffer = io.BytesIO(new_post['embs'])
         arr = torch.load(buffer) 
         # print(arr)
         # print(new_post['id'])
         conn.commit()
         # conn.close()
+        if not new_post:
+            return 'Upload failed'
     except Exception as err:
         print('error: ', err)
     
-    if not new_post:
-        return 'Upload failed'
+    
 
     return new_post['id']
 
