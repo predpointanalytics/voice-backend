@@ -19,35 +19,34 @@ app = FastAPI()
 
 classifier = EncoderClassifier.from_hparams(source='speechbrain/spkrec-ecapa-voxceleb', savedir='model')
 
-print('pre db load 0.1')
 
-while True:
-    try:
-        print('pre db load 0.2')
-        conn = psycopg2.connect(host='localhost', database='fastapi',
-                                user='postgres', password='password',
-                                cursor_factory=RealDictCursor)
-        print('DB connection successful!')
-        cursor = conn.cursor()
-        break
-    except Exception as error:
-        print('Connection Failed')
-        print('Error: ', error)
-        time.sleep(2)
-
-# def init():
-#     conn = psycopg2.connect(host='localhost', database='fastapi',
+# while True:
+#     try:
+#         print('pre db load 0.2')
+#         conn = psycopg2.connect(host='localhost', database='fastapi',
 #                                 user='postgres', password='password',
 #                                 cursor_factory=RealDictCursor)
-#     print('DB connection successful!')
-#     cursor = conn.cursor()
-#     return (conn, cursor)
+#         print('DB connection successful!')
+#         cursor = conn.cursor()
+#         break
+#     except Exception as error:
+#         print('Connection Failed')
+#         print('Error: ', error)
+#         time.sleep(2)
+
+def init():
+    conn = psycopg2.connect(host='localhost', database='fastapi',
+                                user='postgres', password='password',
+                                cursor_factory=RealDictCursor)
+    print('DB connection successful!')
+    cursor = conn.cursor()
+    return (conn, cursor)
 
 
 
 @app.patch('/upload')
 async def get_post(request: Request):
-    # conn, cursor = init()
+    conn, cursor = init()
     post_data = await request.body()
     audio_file = open("temp22.m4a", "wb")
     audio_file.write(post_data)
@@ -70,12 +69,16 @@ async def get_post(request: Request):
         # print(arr)
         # print(new_post['id'])
         conn.commit()
-        # conn.close()
-        if not new_post:
-            return 'Upload failed'
+        cursor.close()
+        conn.close()
+        
     except Exception as err:
         print('error: ', err)
+        cursor.close()
+        conn.close()
     
+    if not new_post:
+            return 'Upload failed'
     
 
     return new_post['id']
@@ -83,6 +86,7 @@ async def get_post(request: Request):
 @app.patch('/verify/{id}')
 async def get_post( id: int, request: Request):
     # id=2
+    conn, cursor = init()
     print(id)
     post_data = await request.body()
     audio_file = open("verify.m4a", "wb")
@@ -97,9 +101,15 @@ async def get_post( id: int, request: Request):
         bin_data = cursor.fetchone()['embs']
         buffer = io.BytesIO(bin_data)
         emb_db = torch.load(buffer)
+
+        cursor.close()
+        conn.close()
         # print(emb_db)
     except Exception as err:
         print('error: ', err)
+        cursor.close()
+        conn.close()
+    
     if not bin_data:
         return 'Enter valid id'
     score = cdist(emb[0], emb_db, metric='cosine')
