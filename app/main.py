@@ -39,14 +39,15 @@ def init():
                                 user='postgres', password='password',
                                 cursor_factory=RealDictCursor)
     print('DB connection successful!')
-    cursor = conn.cursor()
-    return (conn, cursor)
+    # cursor = conn.cursor()
+    return conn
 
 
 
 @app.patch('/upload')
 async def get_post(request: Request):
-    conn, cursor = init()
+    conn = init()
+    cursor = conn.cursor()
     post_data = await request.body()
     audio_file = open("temp22.m4a", "wb")
     audio_file.write(post_data)
@@ -86,7 +87,8 @@ async def get_post(request: Request):
 @app.patch('/verify/{id}')
 async def get_post( id: int, request: Request):
     # id=2
-    conn, cursor = init()
+    conn = init()
+    cursor = conn.cursor()
     print(id)
     post_data = await request.body()
     audio_file = open("verify.m4a", "wb")
