@@ -3,8 +3,6 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
 from pydantic import BaseModel
-import random
-import pickle
 import pandas as pd
 from speechbrain.pretrained import EncoderClassifier
 from scipy.spatial.distance import cdist
@@ -36,7 +34,7 @@ classifier = EncoderClassifier.from_hparams(source='speechbrain/spkrec-ecapa-vox
 
 def init():
     conn = psycopg2.connect(host='localhost', database='fastapi',
-                                user='postgres', password='password',
+                                user='postgres', password='digi@post123',
                                 cursor_factory=RealDictCursor)
     print('DB connection successful!')
     # cursor = conn.cursor()
@@ -93,7 +91,7 @@ async def get_post( id: int, request: Request):
     post_data = await request.body()
     audio_file = open("verify.m4a", "wb")
     audio_file.write(post_data)
-    subprocess.call(['ffmpeg', '-i', 'verify.m4a', 'verify.wav', '-y'])
+    subprocess.call(['ffmpeg', '-i', 'verify.m4a', 'verify.wav', '-y'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     signal, fs =torchaudio.load('verify.wav', channels_first=False)
     signal = a_norm(signal, fs)
@@ -121,6 +119,46 @@ async def get_post( id: int, request: Request):
         return f'Authenticated'
     else:
         return 'Wrong User'
+    
+##############################################################################
+@app.get('/verifymany')
+async def verify(request: Request):
+    print('Checking DB connection')
+    conn = init()
+    cursor = conn.cursor()
+    # id =10
+
+    post_data = await request.body()
+    audio_file = open("verify.m4a", "wb")
+    audio_file.write(post_data)
+    subprocess.call(['ffmpeg', '-i', 'verify.m4a', 'verify.wav', '-y'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    signal, fs =torchaudio.load('verify.wav', channels_first=False)
+    signal = a_norm(signal, fs)
+    emb =  classifier.encode_batch(signal)
+    print(emb[0].shape)
+    # conn.close()
+    try:
+        cursor.execute("""SELECT embs from embeddings""")
+        bin_list= cursor.fetchall()
+
+        x_df = pd.DataFrame(bin_list)
+        x_df['score']= x_df['embs'].apply(lambda x: cdist(torch.load(io.BytesIO(x)), emb[0], metric='cosine'))
+       
+        min_score= x_df.score.min().item()
+        print(min_score)
+        cursor.close()
+        conn.close()
+    except Exception as err:
+        print('error: ', err)
+        cursor.close()
+        conn.close()
+
+    if min_score < 0.6:
+        return 'Authorized'
+    else: return 'Access Denied'
+
+##############################################################################
 
 @app.get('/')
 def root():
