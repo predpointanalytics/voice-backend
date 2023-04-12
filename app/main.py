@@ -121,7 +121,7 @@ async def get_post( id: int, request: Request):
         return 'Wrong User'
     
 ##############################################################################
-@app.get('/verifymany')
+@app.patch('/verifymany')
 async def verify(request: Request):
     print('Checking DB connection')
     conn = init()
