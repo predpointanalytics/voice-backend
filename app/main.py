@@ -34,7 +34,9 @@ classifier = EncoderClassifier.from_hparams(source='speechbrain/spkrec-ecapa-vox
 
 def init():
     conn = psycopg2.connect(host='localhost', database='fastapi',
-                                user='postgres', password='digi@post123',
+                                user='postgres', 
+                                password='digi@post123',
+                                # password='password',
                                 cursor_factory=RealDictCursor)
     print('DB connection successful!')
     # cursor = conn.cursor()
@@ -59,11 +61,16 @@ async def get_post(request: Request):
     torch.save(emb[0], buffer)
     data = buffer.getvalue()
 
+    if request.headers['val']:
+        print(request.headers['val'])
+        name = request.headers['val']
+    else: print('Name not set')
+
     try:
-        cursor.execute("""INSERT INTO embeddings (embs) VALUES (%s)
-        RETURNING *""", (psycopg2.Binary(data),))
+        cursor.execute("""INSERT INTO embeddings_v2 (embeddings,name) VALUES (%s,%s)
+        RETURNING *""", (psycopg2.Binary(data),name))
         new_post =  cursor.fetchone()
-        buffer = io.BytesIO(new_post['embs'])
+        buffer = io.BytesIO(new_post['embeddings'])
         arr = torch.load(buffer) 
         # print(arr)
         # print(new_post['id'])
@@ -139,13 +146,17 @@ async def verify(request: Request):
     print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute("""SELECT embs from embeddings""")
+        cursor.execute("""SELECT name,embeddings from embeddings_v2""")
         bin_list= cursor.fetchall()
 
         x_df = pd.DataFrame(bin_list)
-        x_df['score']= x_df['embs'].apply(lambda x: cdist(torch.load(io.BytesIO(x)), emb[0], metric='cosine'))
-       
+        x_df['score']= x_df['embeddings'].apply(lambda x: cdist(torch.load(io.BytesIO(x)), emb[0], metric='cosine'))
+        # name_df= x_df.iloc[x_df['score'].idxmin()]
+        # print(name_df)
+        
         min_score= x_df.score.min().item()
+        name_df = x_df[x_df.score == min_score]['name'].item()
+        print(name_df)
         print(min_score)
         cursor.close()
         conn.close()
@@ -153,9 +164,11 @@ async def verify(request: Request):
         print('error: ', err)
         cursor.close()
         conn.close()
-
+    ret_mesg = 'Authorized'
+    if name_df:
+        ret_mesg = 'Welcome ' + name_df
     if min_score < 0.6:
-        return 'Authorized'
+        return ret_mesg
     else: return 'Access Denied'
 
 ##############################################################################
