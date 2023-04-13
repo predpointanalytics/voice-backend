@@ -244,12 +244,11 @@ async def verify(request: Request):
     signal, fs =torchaudio.load('verify.wav', channels_first=False)
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
-    print(emb[0].shape)
-    emb_data1 = numpy.array(emb[0][0])
+    data = numpy.array(emb[0][0])
     # print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute(""" SELECT * FROM embeddings_v3 ORDER BY (embeddings <=> {0}) LIMIT 1 """.format(emb_data1))
+        cursor.execute(""" SELECT * FROM embeddings_v3 ORDER BY (embeddings <=> {0}) LIMIT 1 """.format(data))
         # cursor.execute(""" SELECT * FROM embeddings_v3""")
         emb_result= cursor.fetchone()
 
@@ -270,7 +269,7 @@ async def verify(request: Request):
     #     return ret_mesg
     # else: return 'Access Denied'
     # return emb_result['name']
-    return 'check complete'
+    return type(data)
 
 
 
