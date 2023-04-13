@@ -245,31 +245,25 @@ async def verify(request: Request):
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
     data = numpy.array(emb[0][0])
-    # print(emb[0].shape)
-    # conn.close()
+
     try:
         cursor.execute(""" SELECT name, embeddings <=> %s as score FROM embeddings_v3 ORDER BY score """, (data, ))
         # cursor.execute(""" SELECT * FROM embeddings_v3""")
         emb_result= cursor.fetchone()
-
-        print('zzzzzzzzzzzz',emb_result['name'])
-
-        
         cursor.close()
         conn.close()
-        return (emb_result['name'], emb_result['score'])
+        # return (emb_result['name'], emb_result['score'])
     except Exception as err:
         print('error: ', err)
         cursor.close()
         conn.close()
-    # ret_mesg = 'Authorized'
-    # if name_df:
-    #     ret_mesg = 'Welcome ' + name_df
-    # if min_score < 0.6:
-    #     return ret_mesg
-    # else: return 'Access Denied'
-    # return emb_result['name']
-    return type(data)
+    ret_mesg = 'Authorized'
+    if emb_result['name']:
+        ret_mesg = 'Welcome ' + emb_result['name']
+    if emb_result['score'] < 0.6:
+        return ret_mesg
+    else: return 'Access Denied'
+
 
 
 
