@@ -236,7 +236,7 @@ async def verify(request: Request):
     # id =10
     register_vector(cursor)
     post_data = await request.body()
-    print(post_data)
+    # print(post_data)
     audio_file = open("verify.m4a", "wb")
     audio_file.write(post_data)
     subprocess.call(['ffmpeg', '-i', 'verify.m4a', 'verify.wav', '-y'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -244,11 +244,12 @@ async def verify(request: Request):
     signal, fs =torchaudio.load('verify.wav', channels_first=False)
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
+    print(emb[0].shape)
     emb_data = numpy.array(emb[0][0])
     # print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY embeddings <=> %s LIMIT 1""", (emb_data,))
+        cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY (embeddings <=> '%s') LIMIT 1""", (emb_data,))
         emb_result= cursor.fetchall()
 
         
