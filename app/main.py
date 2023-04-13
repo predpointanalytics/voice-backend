@@ -244,22 +244,13 @@ async def verify(request: Request):
     signal, fs =torchaudio.load('verify.wav', channels_first=False)
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
-    print(emb[0].shape)
+    emb_data = numpy.array(emb[0][0])
+    # print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute("""SELECT name,embeddings from embeddings_v3""")
-        bin_list= cursor.fetchall()
+        cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY embeddings <=> %s LIMIT 1""", (emb_data,))
+        emb_result= cursor.fetchall()
 
-        x_df = pd.DataFrame(bin_list)
-        x_df['score']= x_df['embeddings'].apply(lambda x: cdist(torch.load(io.BytesIO(x)), emb[0], metric='cosine'))
-        # name_df= x_df.iloc[x_df['score'].idxmin()]
-        # print(name_df)
-        
-        min_score= x_df.score.min().item()
-        name_df = x_df[x_df.score == min_score]['name'].item()
-        print(name_df)
-        print(min_score)
-        print(x_df)
         
         cursor.close()
         conn.close()
@@ -267,12 +258,13 @@ async def verify(request: Request):
         print('error: ', err)
         cursor.close()
         conn.close()
-    ret_mesg = 'Authorized'
-    if name_df:
-        ret_mesg = 'Welcome ' + name_df
-    if min_score < 0.6:
-        return ret_mesg
-    else: return 'Access Denied'
+    # ret_mesg = 'Authorized'
+    # if name_df:
+    #     ret_mesg = 'Welcome ' + name_df
+    # if min_score < 0.6:
+    #     return ret_mesg
+    # else: return 'Access Denied'
+    return emb_result['name']
 
 
 
