@@ -249,14 +249,15 @@ async def verify(request: Request):
     # print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY (embeddings <=> '%s') LIMIT 1""", (emb_data))
+        cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY (embeddings <=> '%s') LIMIT 1""", (emb_data,))
         emb_result= cursor.fetchone()
 
-        print('zzzzzzzzzzzz',emb_result)
+        print('zzzzzzzzzzzz',emb_result['name'])
 
         
         cursor.close()
         conn.close()
+        return emb_result['name']
     except Exception as err:
         print('error: ', err)
         cursor.close()
