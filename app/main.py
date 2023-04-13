@@ -248,7 +248,7 @@ async def verify(request: Request):
     # print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute(""" SELECT * FROM embeddings_v3 ORDER BY embeddings <=> %s LIMIT 1 """, (data, ))
+        cursor.execute(""" SELECT name, embeddings <=> %s as score FROM embeddings_v3 """, (data, ))
         # cursor.execute(""" SELECT * FROM embeddings_v3""")
         emb_result= cursor.fetchone()
 
