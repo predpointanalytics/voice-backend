@@ -249,8 +249,10 @@ async def verify(request: Request):
     # print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY (embeddings <=> '%s') LIMIT 1""", (emb_data,))
-        emb_result= cursor.fetchall()
+        cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY (embeddings <=> '%s') LIMIT 1""", (emb_data))
+        emb_result= cursor.fetchone()
+
+        print(emb_result)
 
         
         cursor.close()
@@ -265,7 +267,8 @@ async def verify(request: Request):
     # if min_score < 0.6:
     #     return ret_mesg
     # else: return 'Access Denied'
-    return emb_result['name']
+    # return emb_result['name']
+    return 'check complete'
 
 
 
