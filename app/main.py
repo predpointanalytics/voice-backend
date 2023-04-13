@@ -245,12 +245,12 @@ async def verify(request: Request):
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
     print(emb[0].shape)
-    emb_data = numpy.array(emb[0][0])
+    emb_data1 = numpy.array(emb[0][0])
     # print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY (embeddings <=> '%s') LIMIT 1""", (emb_data,))
-        emb_result= cursor.fetchone()
+        cursor.execute(""" SELECT * FROM embeddings_v3 ORDER BY (embeddings <=> '%s') LIMIT 1 """, (emb_data1,))
+        emb_result= cursor.fetchall()
 
         print('zzzzzzzzzzzz',emb_result['name'])
 
