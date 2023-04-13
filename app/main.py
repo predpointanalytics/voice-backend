@@ -252,7 +252,7 @@ async def verify(request: Request):
         cursor.execute("""SELECT name FROM embeddings_v3 ORDER BY (embeddings <=> '%s') LIMIT 1""", (emb_data))
         emb_result= cursor.fetchone()
 
-        print(emb_result)
+        print('zzzzzzzzzzzz',emb_result)
 
         
         cursor.close()
