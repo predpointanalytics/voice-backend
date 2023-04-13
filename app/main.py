@@ -13,6 +13,7 @@ a_norm= AudioNormalizer()
 import subprocess
 import io
 import torch
+import numpy
 
 app = FastAPI()
 
@@ -193,7 +194,7 @@ async def get_post(request: Request):
     signal, fs =torchaudio.load('temp22.wav', channels_first=False)
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
-    data = emb[0].detach().cpu().numpy()
+    data = numpy.array(emb[0])
 
     # buffer = io.BytesIO()
     # torch.save(emb[0], buffer)
