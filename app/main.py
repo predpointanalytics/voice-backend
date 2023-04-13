@@ -257,7 +257,7 @@ async def verify(request: Request):
         
         cursor.close()
         conn.close()
-        return emb_result['name']
+        return (emb_result['name'], emb_result['score'])
     except Exception as err:
         print('error: ', err)
         cursor.close()
