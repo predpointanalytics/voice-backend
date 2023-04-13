@@ -1,6 +1,7 @@
 from fastapi import FastAPI, status, HTTPException, Request
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from pgvector.psycopg2 import register_vector
 import time
 from pydantic import BaseModel
 import pandas as pd
@@ -136,6 +137,7 @@ async def verify(request: Request):
     # id =10
 
     post_data = await request.body()
+    print(post_data)
     audio_file = open("verify.m4a", "wb")
     audio_file.write(post_data)
     subprocess.call(['ffmpeg', '-i', 'verify.m4a', 'verify.wav', '-y'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -158,6 +160,8 @@ async def verify(request: Request):
         name_df = x_df[x_df.score == min_score]['name'].item()
         print(name_df)
         print(min_score)
+        print(x_df)
+        
         cursor.close()
         conn.close()
     except Exception as err:
@@ -172,7 +176,107 @@ async def verify(request: Request):
     else: return 'Access Denied'
 
 ##############################################################################
+#Trying out the new pgvector extension to calculate cosine similarity in db ##
+##############################################################################
+##############################################################################
 
+@app.patch('/uploadv2')
+async def get_post(request: Request):
+    conn = init()
+    cursor = conn.cursor()
+    register_vector(cursor)
+    post_data = await request.body()
+    audio_file = open("temp22.m4a", "wb")
+    audio_file.write(post_data)
+    subprocess.call(['ffmpeg', '-i', 'temp22.m4a', 'temp22.wav', '-y'])
+    # print(post_data)
+    signal, fs =torchaudio.load('temp22.wav', channels_first=False)
+    signal = a_norm(signal, fs)
+    emb =  classifier.encode_batch(signal)
+    data = emb[0]
+
+    # buffer = io.BytesIO()
+    # torch.save(emb[0], buffer)
+    # data = buffer.getvalue()
+
+    if request.headers['val']:
+        print(request.headers['val'])
+        name = request.headers['val']
+    else: print('Name not set')
+
+    try:
+        cursor.execute("""INSERT INTO embeddings_v3 (embeddings,name) VALUES (%s,%s)
+        RETURNING *""", (psycopg2.Binary(data),name))
+        new_post =  cursor.fetchone()
+        buffer = io.BytesIO(new_post['embeddings'])
+        arr = torch.load(buffer) 
+        # print(arr)
+        # print(new_post['id'])
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+    except Exception as err:
+        print('error: ', err)
+        cursor.close()
+        conn.close()
+    
+    if not new_post:
+            return 'Upload failed'
+    
+
+    return new_post['id']
+
+@app.patch('/verifymanyv2')
+async def verify(request: Request):
+    print('Checking DB connection')
+    conn = init()
+    cursor = conn.cursor()
+    # id =10
+    register_vector(cursor)
+    post_data = await request.body()
+    print(post_data)
+    audio_file = open("verify.m4a", "wb")
+    audio_file.write(post_data)
+    subprocess.call(['ffmpeg', '-i', 'verify.m4a', 'verify.wav', '-y'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    signal, fs =torchaudio.load('verify.wav', channels_first=False)
+    signal = a_norm(signal, fs)
+    emb =  classifier.encode_batch(signal)
+    print(emb[0].shape)
+    # conn.close()
+    try:
+        cursor.execute("""SELECT name,embeddings from embeddings_v2""")
+        bin_list= cursor.fetchall()
+
+        x_df = pd.DataFrame(bin_list)
+        x_df['score']= x_df['embeddings'].apply(lambda x: cdist(torch.load(io.BytesIO(x)), emb[0], metric='cosine'))
+        # name_df= x_df.iloc[x_df['score'].idxmin()]
+        # print(name_df)
+        
+        min_score= x_df.score.min().item()
+        name_df = x_df[x_df.score == min_score]['name'].item()
+        print(name_df)
+        print(min_score)
+        print(x_df)
+        
+        cursor.close()
+        conn.close()
+    except Exception as err:
+        print('error: ', err)
+        cursor.close()
+        conn.close()
+    ret_mesg = 'Authorized'
+    if name_df:
+        ret_mesg = 'Welcome ' + name_df
+    if min_score < 0.6:
+        return ret_mesg
+    else: return 'Access Denied'
+
+
+
+##############################################################################
+##############################################################################
 @app.get('/')
 def root():
     # cursor.execute("""SELECT * from posts""")
