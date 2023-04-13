@@ -194,7 +194,7 @@ async def get_post(request: Request):
     signal, fs =torchaudio.load('temp22.wav', channels_first=False)
     signal = a_norm(signal, fs)
     emb =  classifier.encode_batch(signal)
-    data = numpy.array(emb[0])
+    data = numpy.array(emb[0][0])
 
     # buffer = io.BytesIO()
     # torch.save(emb[0], buffer)
