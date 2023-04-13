@@ -206,10 +206,10 @@ async def get_post(request: Request):
 
     try:
         cursor.execute("""INSERT INTO embeddings_v3 (embeddings,name) VALUES (%s,%s)
-        RETURNING *""", (psycopg2.Binary(data),name))
+        RETURNING *""", (data,name))
         new_post =  cursor.fetchone()
-        buffer = io.BytesIO(new_post['embeddings'])
-        arr = torch.load(buffer) 
+        # buffer = io.BytesIO(new_post['embeddings'])
+        # arr = torch.load(buffer) 
         # print(arr)
         # print(new_post['id'])
         conn.commit()
@@ -246,7 +246,7 @@ async def verify(request: Request):
     print(emb[0].shape)
     # conn.close()
     try:
-        cursor.execute("""SELECT name,embeddings from embeddings_v2""")
+        cursor.execute("""SELECT name,embeddings from embeddings_v3""")
         bin_list= cursor.fetchall()
 
         x_df = pd.DataFrame(bin_list)
