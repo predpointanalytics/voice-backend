@@ -1,2 +1,2 @@
 # voice-backend
-backend for the voice authentication app
+backend for the voice authentication mobile app
